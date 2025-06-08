@@ -1,0 +1,36 @@
+body {
+    margin: 0;
+    overflow: hidden; /* 防止滚动条 */
+    background-color: #333;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+}
+
+#game-container {
+    width: 800px; /* 游戏区域宽度 */
+    height: 600px; /* 游戏区域高度 */
+    background-color: #555;
+    position: relative; /* 允许子元素定位 */
+    border: 2px solid #fff;
+    overflow: hidden; /* 隐藏超出边界的子弹 */
+}
+
+#player {
+    width: 50px;
+    height: 50px;
+    background-color: dodgerblue;
+    position: absolute;
+    bottom: 20px; /* 初始位置在底部 */
+    left: calc(50% - 25px); /* 初始位置居中 */
+    border-radius: 5px;
+}
+
+.bullet {
+    width: 10px;
+    height: 20px;
+    background-color: yellow;
+    position: absolute;
+    border-radius: 2px;
+}
