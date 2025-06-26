@@ -105,7 +105,7 @@
       const info = document.getElementById("time-info");
 
       bar.style.width = percentage.toFixed(5) + "%";
-      bar.textContent = percentage.toFixed(2) + "%";
+      bar.textContent = percentage.toFixed(4) + "%";
 
       const secondsElapsed = Math.floor(elapsed / 1000);
       const totalSeconds = Math.floor(total / 1000);
