@@ -1,119 +1,26 @@
 <!DOCTYPE html>
-<html lang="zh">
+<html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>暑假倒计时</title>
-  <style>
-    html, body {
-      margin: 0;
-      padding: 0;
-      height: 100%;
-      font-family: "Segoe UI", sans-serif;
-      overflow: hidden;
-      color: white;
-    }
-
-    body {
-      animation: gradientBG 20s ease infinite;
-      background: linear-gradient(-45deg, #6a85b6, #bac8e0, #91eae4, #7f7fd5);
-      background-size: 400% 400%;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-    }
-
-    @keyframes gradientBG {
-      0% { background-position: 0% 50%; }
-      50% { background-position: 100% 50%; }
-      100% { background-position: 0% 50%; }
-    }
-
-    h1 {
-      font-size: 2.5em;
-      margin-bottom: 0.5em;
-    }
-
-    #countdown {
-      font-size: 2em;
-      margin-bottom: 1em;
-      font-weight: bold;
-      background-color: rgba(0,0,0,0.2);
-      padding: 10px 20px;
-      border-radius: 10px;
-    }
-
-    #progress-container {
-      width: 80%;
-      max-width: 600px;
-      background-color: rgba(255, 255, 255, 0.2);
-      border-radius: 20px;
-      overflow: hidden;
-    }
-
-    #progress-bar {
-      height: 30px;
-      width: 0%;
-      background-color: #4caf50;
-      text-align: center;
-      line-height: 30px;
-      color: white;
-      transition: width 1s ease-in-out;
-    }
-
-    #time-info {
-      margin-top: 0.5em;
-      font-size: 1em;
-    }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CryptQR - Secure Text Encryption</title>
+    <link rel="stylesheet" href="index.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&display=swap" rel="stylesheet">
+<script type="importmap">
+{
+  "imports": {
+    "react/": "https://esm.sh/react@^19.1.1/",
+    "react": "https://esm.sh/react@^19.1.1",
+    "react-dom/": "https://esm.sh/react-dom@^19.1.1/",
+    "qrcode": "https://esm.sh/qrcode@^1.5.4"
+  }
+}
+</script>
 </head>
 <body>
-  <h1>暑假倒计时</h1>
-  <div id="countdown">加载中...</div>
-
-  <div id="progress-container">
-    <div id="progress-bar">0%</div>
-  </div>
-  <div id="time-info">正在计算进度...</div>
-
-  <script>
-    const startTime = new Date("2025-06-26T00:00:00").getTime();
-    const endTime = new Date("2025-08-31T18:00:00").getTime();
-
-    function formatTime(seconds) {
-      const d = Math.floor(seconds / (3600 * 24));
-      const h = Math.floor((seconds % (3600 * 24)) / 3600);
-      const m = Math.floor((seconds % 3600) / 60);
-      const s = seconds % 60;
-      return `${d}天 ${h}时 ${m}分 ${s}秒`;
-    }
-
-    function updateAll() {
-      const now = new Date().getTime();
-      const total = endTime - startTime;
-      const elapsed = now - startTime;
-      const remaining = Math.max(0, Math.floor((endTime - now) / 1000));
-      const percentage = Math.min(Math.max((elapsed / total) * 100, 0), 100);
-
-      // 更新倒计时
-      const countdownEl = document.getElementById("countdown");
-      countdownEl.textContent = `距离暑假结束还有：${formatTime(remaining)}`;
-
-      // 更新进度条
-      const bar = document.getElementById("progress-bar");
-      const info = document.getElementById("time-info");
-
-      bar.style.width = percentage.toFixed(5) + "%";
-      bar.textContent = percentage.toFixed(4) + "%";
-
-      const secondsElapsed = Math.floor(elapsed / 1000);
-      const totalSeconds = Math.floor(total / 1000);
-      info.textContent = `已过去 ${secondsElapsed} 秒 / 共 ${totalSeconds} 秒`;
-    }
-
-    updateAll();
-    setInterval(updateAll, 1000);
-  </script>
+    <div id="root"></div>
+    <script type="module" src="index.tsx"></script>
 </body>
 </html>
