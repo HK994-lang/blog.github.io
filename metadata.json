@@ -1,0 +1,4 @@
+{
+  "name": "CryptQR",
+  "description": "A tool to securely encrypt and decrypt text using a password and a QR-based verification code."
+}
