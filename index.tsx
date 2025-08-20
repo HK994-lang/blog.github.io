@@ -2,11 +2,12 @@
  * @license
  * SPDX-License-Identifier: Apache-2.0
 */
-import React, { useState } from 'react';
-import ReactDOM from 'react-dom/client';
 
+// React and ReactDOM are loaded from a CDN and available globally.
 // QRCode is loaded from a CDN and available globally.
 declare const QRCode: any;
+declare const React: any;
+declare const ReactDOM: any;
 
 // --- Crypto Helper Functions ---
 const PBKDF2_ITERATIONS = 100000;
@@ -63,21 +64,21 @@ const getKey = async (password: string, salt: Uint8Array): Promise<CryptoKey> =>
 
 const App = () => {
     // Encryption state
-    const [plainText, setPlainText] = useState('');
-    const [encPassword, setEncPassword] = useState('');
-    const [cipherText, setCipherText] = useState('');
-    const [qrCodeUrl, setQrCodeUrl] = useState('');
-    const [isEncrypting, setIsEncrypting] = useState(false);
+    const [plainText, setPlainText] = React.useState('');
+    const [encPassword, setEncPassword] = React.useState('');
+    const [cipherText, setCipherText] = React.useState('');
+    const [qrCodeUrl, setQrCodeUrl] = React.useState('');
+    const [isEncrypting, setIsEncrypting] = React.useState(false);
 
     // Decryption state
-    const [cipherTextForDecrypt, setCipherTextForDecrypt] = useState('');
-    const [decPassword, setDecPassword] = useState('');
-    const [verificationCode, setVerificationCode] = useState('');
-    const [decryptedText, setDecryptedText] = useState('');
-    const [isDecrypting, setIsDecrypting] = useState(false);
+    const [cipherTextForDecrypt, setCipherTextForDecrypt] = React.useState('');
+    const [decPassword, setDecPassword] = React.useState('');
+    const [verificationCode, setVerificationCode] = React.useState('');
+    const [decryptedText, setDecryptedText] = React.useState('');
+    const [isDecrypting, setIsDecrypting] = React.useState(false);
     
     // Global error
-    const [error, setError] = useState('');
+    const [error, setError] = React.useState('');
 
     const handleEncrypt = async () => {
         if (!plainText || !encPassword) {
