@@ -3,11 +3,12 @@
  * SPDX-License-Identifier: Apache-2.0
 */
 import React, { useState } from 'react';
-import { createRoot } from 'react-dom/client';
-import QRCode from 'qrcode';
+import ReactDOM from 'react-dom/client';
+
+// QRCode is loaded from a CDN and available globally.
+declare const QRCode: any;
 
 // --- Crypto Helper Functions ---
-
 const PBKDF2_ITERATIONS = 100000;
 const SALT_LENGTH_BYTES = 16;
 const IV_LENGTH_BYTES = 16; // 128 bits, as requested
@@ -60,23 +61,23 @@ const getKey = async (password: string, salt: Uint8Array): Promise<CryptoKey> =>
 
 // --- React Component ---
 
-const App: React.FC = () => {
+const App = () => {
     // Encryption state
-    const [plainText, setPlainText] = useState<string>('');
-    const [encPassword, setEncPassword] = useState<string>('');
-    const [cipherText, setCipherText] = useState<string>('');
-    const [qrCodeUrl, setQrCodeUrl] = useState<string>('');
-    const [isEncrypting, setIsEncrypting] = useState<boolean>(false);
+    const [plainText, setPlainText] = useState('');
+    const [encPassword, setEncPassword] = useState('');
+    const [cipherText, setCipherText] = useState('');
+    const [qrCodeUrl, setQrCodeUrl] = useState('');
+    const [isEncrypting, setIsEncrypting] = useState(false);
 
     // Decryption state
-    const [cipherTextForDecrypt, setCipherTextForDecrypt] = useState<string>('');
-    const [decPassword, setDecPassword] = useState<string>('');
-    const [verificationCode, setVerificationCode] = useState<string>('');
-    const [decryptedText, setDecryptedText] = useState<string>('');
-    const [isDecrypting, setIsDecrypting] = useState<boolean>(false);
+    const [cipherTextForDecrypt, setCipherTextForDecrypt] = useState('');
+    const [decPassword, setDecPassword] = useState('');
+    const [verificationCode, setVerificationCode] = useState('');
+    const [decryptedText, setDecryptedText] = useState('');
+    const [isDecrypting, setIsDecrypting] = useState(false);
     
     // Global error
-    const [error, setError] = useState<string>('');
+    const [error, setError] = useState('');
 
     const handleEncrypt = async () => {
         if (!plainText || !encPassword) {
@@ -108,6 +109,7 @@ const App: React.FC = () => {
             setCipherText(base64CipherText);
 
             const base64VerificationCode = arrayBufferToBase64(iv.buffer);
+            // QRCode is available globally from the script tag
             const qrUrl = await QRCode.toDataURL(base64VerificationCode, { errorCorrectionLevel: 'H' });
             setQrCodeUrl(qrUrl);
 
@@ -275,6 +277,6 @@ const App: React.FC = () => {
 
 const container = document.getElementById('root');
 if (container) {
-    const root = createRoot(container);
+    const root = ReactDOM.createRoot(container);
     root.render(<App />);
 }
