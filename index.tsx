@@ -1,283 +1,283 @@
-/**
- * @license
- * SPDX-License-Identifier: Apache-2.0
-*/
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import { createRoot } from 'react-dom/client';
+import QRCode from 'qrcode';
 
-// React and ReactDOM are loaded from a CDN and available globally.
-// QRCode is loaded from a CDN and available globally.
-declare const QRCode: any;
-declare const React: any;
-declare const ReactDOM: any;
+const App = () => {
+  const [activeTab, setActiveTab] = useState('encrypt');
 
-// --- Crypto Helper Functions ---
-const PBKDF2_ITERATIONS = 100000;
-const SALT_LENGTH_BYTES = 16;
-const IV_LENGTH_BYTES = 16; // 128 bits, as requested
+  // --- Encrypt State ---
+  const [plaintext, setPlaintext] = useState('');
+  const [encryptPassword, setEncryptPassword] = useState('');
+  const [showEncryptPassword, setShowEncryptPassword] = useState(false);
+  const [generatedCiphertext, setGeneratedCiphertext] = useState('');
+  const [verificationCode, setVerificationCode] = useState('');
+  const [isEncrypting, setIsEncrypting] = useState(false);
+  const [encryptError, setEncryptError] = useState('');
 
-// Helper to convert ArrayBuffer to Base64
-const arrayBufferToBase64 = (buffer: ArrayBuffer): string => {
+  // --- Decrypt State ---
+  const [ciphertext, setCiphertext] = useState('');
+  const [decryptPassword, setDecryptPassword] = useState('');
+  const [showDecryptPassword, setShowDecryptPassword] = useState(false);
+  const [decryptVerificationCode, setDecryptVerificationCode] = useState('');
+  const [decryptedPlaintext, setDecryptedPlaintext] = useState('');
+  const [isDecrypting, setIsDecrypting] = useState(false);
+  const [decryptError, setDecryptError] = useState('');
+
+  // --- Crypto Helpers ---
+  const textEncoder = new TextEncoder();
+  const textDecoder = new TextDecoder();
+
+  const arrayBufferToBase64 = (buffer: ArrayBuffer) => {
     let binary = '';
     const bytes = new Uint8Array(buffer);
     const len = bytes.byteLength;
     for (let i = 0; i < len; i++) {
-        binary += String.fromCharCode(bytes[i]);
+      binary += String.fromCharCode(bytes[i]);
     }
     return window.btoa(binary);
-};
+  };
 
-// Helper to convert Base64 to ArrayBuffer
-const base64ToArrayBuffer = (base64: string): ArrayBuffer => {
+  const base64ToArrayBuffer = (base64: string) => {
     const binary_string = window.atob(base64);
     const len = binary_string.length;
     const bytes = new Uint8Array(len);
     for (let i = 0; i < len; i++) {
-        bytes[i] = binary_string.charCodeAt(i);
+      bytes[i] = binary_string.charCodeAt(i);
     }
     return bytes.buffer;
-};
+  };
+  
+  const generateRandomString = (length: number) => {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    const randomValues = new Uint32Array(length);
+    window.crypto.getRandomValues(randomValues);
+    for (let i = 0; i < length; i++) {
+      result += chars.charAt(randomValues[i] % chars.length);
+    }
+    return result;
+  };
 
-// Derives a key from a password and salt using PBKDF2
-const getKey = async (password: string, salt: Uint8Array): Promise<CryptoKey> => {
-    const enc = new TextEncoder();
+  const deriveKey = async (password: string, salt: string) => {
     const keyMaterial = await window.crypto.subtle.importKey(
-        'raw',
-        enc.encode(password),
-        { name: 'PBKDF2' },
-        false,
-        ['deriveKey']
+      'raw',
+      textEncoder.encode(password),
+      { name: 'PBKDF2' },
+      false,
+      ['deriveKey']
     );
     return window.crypto.subtle.deriveKey(
-        {
-            name: 'PBKDF2',
-            salt: salt,
-            iterations: PBKDF2_ITERATIONS,
-            hash: 'SHA-256',
-        },
-        keyMaterial,
-        { name: 'AES-CBC', length: 256 },
-        true,
-        ['encrypt', 'decrypt']
+      {
+        name: 'PBKDF2',
+        salt: textEncoder.encode(salt),
+        iterations: 100000,
+        hash: 'SHA-256',
+      },
+      keyMaterial,
+      { name: 'AES-GCM', length: 256 },
+      true,
+      ['encrypt', 'decrypt']
     );
-};
+  };
 
-// --- React Component ---
+  // --- Password Validation ---
+  const isEncryptPasswordValid = useMemo(() => {
+    return encryptPassword.length >= 4 && encryptPassword.length <= 64;
+  }, [encryptPassword]);
 
-const App = () => {
-    // Encryption state
-    const [plainText, setPlainText] = React.useState('');
-    const [encPassword, setEncPassword] = React.useState('');
-    const [cipherText, setCipherText] = React.useState('');
-    const [qrCodeUrl, setQrCodeUrl] = React.useState('');
-    const [isEncrypting, setIsEncrypting] = React.useState(false);
+  // --- QR Code Generation ---
+  useEffect(() => {
+    if (verificationCode) {
+      QRCode.toCanvas(document.getElementById('qr-canvas'), verificationCode, { width: 220 }, (error: Error) => {
+        if (error) console.error(error);
+      });
+    }
+  }, [verificationCode]);
 
-    // Decryption state
-    const [cipherTextForDecrypt, setCipherTextForDecrypt] = React.useState('');
-    const [decPassword, setDecPassword] = React.useState('');
-    const [verificationCode, setVerificationCode] = React.useState('');
-    const [decryptedText, setDecryptedText] = React.useState('');
-    const [isDecrypting, setIsDecrypting] = React.useState(false);
+  // --- Handlers ---
+  const handleEncrypt = async () => {
+    if (!isEncryptPasswordValid || !plaintext) return;
+    setIsEncrypting(true);
+    setEncryptError('');
+    setGeneratedCiphertext('');
+    setVerificationCode('');
+
+    try {
+      const salt = generateRandomString(128);
+      const iv = window.crypto.getRandomValues(new Uint8Array(12));
+      const key = await deriveKey(encryptPassword, salt);
+      
+      const encrypted = await window.crypto.subtle.encrypt(
+        { name: 'AES-GCM', iv: iv },
+        key,
+        textEncoder.encode(plaintext)
+      );
+
+      const ciphertext = `${arrayBufferToBase64(iv)}.${arrayBufferToBase64(encrypted)}`;
+      setGeneratedCiphertext(ciphertext);
+      setVerificationCode(salt);
+    } catch (error) {
+      console.error(error);
+      setEncryptError('Encryption failed. Please try again.');
+    } finally {
+      setIsEncrypting(false);
+    }
+  };
+
+  const handleDecrypt = async () => {
+    if (!decryptPassword || !ciphertext || decryptVerificationCode.length !== 128) return;
+    setIsDecrypting(true);
+    setDecryptError('');
+    setDecryptedPlaintext('');
     
-    // Global error
-    const [error, setError] = React.useState('');
+    try {
+      const [ivBase64, encryptedBase64] = ciphertext.split('.');
+      if (!ivBase64 || !encryptedBase64) {
+        throw new Error('Invalid ciphertext format.');
+      }
 
-    const handleEncrypt = async () => {
-        if (!plainText || !encPassword) {
-            setError('Please provide text and a password to encrypt.');
-            return;
-        }
-        setError('');
-        setIsEncrypting(true);
-        setQrCodeUrl('');
-        setCipherText('');
+      const iv = base64ToArrayBuffer(ivBase64);
+      const encrypted = base64ToArrayBuffer(encryptedBase64);
+      const key = await deriveKey(decryptPassword, decryptVerificationCode);
 
-        try {
-            const salt = window.crypto.getRandomValues(new Uint8Array(SALT_LENGTH_BYTES));
-            const iv = window.crypto.getRandomValues(new Uint8Array(IV_LENGTH_BYTES));
-            const key = await getKey(encPassword, salt);
-            
-            const encodedText = new TextEncoder().encode(plainText);
-            const encryptedContent = await window.crypto.subtle.encrypt(
-                { name: 'AES-CBC', iv: iv },
-                key,
-                encodedText
-            );
+      const decrypted = await window.crypto.subtle.decrypt(
+        { name: 'AES-GCM', iv: iv },
+        key,
+        encrypted
+      );
 
-            const combinedBuffer = new Uint8Array(salt.length + encryptedContent.byteLength);
-            combinedBuffer.set(salt, 0);
-            combinedBuffer.set(new Uint8Array(encryptedContent), salt.length);
+      setDecryptedPlaintext(textDecoder.decode(decrypted));
+    } catch (error) {
+      console.error(error);
+      setDecryptError('Decryption failed. Check your inputs and try again.');
+    } finally {
+      setIsDecrypting(false);
+    }
+  };
 
-            const base64CipherText = arrayBufferToBase64(combinedBuffer.buffer);
-            setCipherText(base64CipherText);
+  const copyToClipboard = (text: string) => {
+    navigator.clipboard.writeText(text).catch(err => console.error("Copy failed", err));
+  };
 
-            const base64VerificationCode = arrayBufferToBase64(iv.buffer);
-            // QRCode is available globally from the script tag
-            const qrUrl = await QRCode.toDataURL(base64VerificationCode, { errorCorrectionLevel: 'H' });
-            setQrCodeUrl(qrUrl);
+  const downloadQR = () => {
+    const canvas = document.getElementById('qr-canvas') as HTMLCanvasElement;
+    if(canvas) {
+        const pngUrl = canvas
+            .toDataURL("image/png")
+            .replace("image/png", "image/octet-stream");
+        let downloadLink = document.createElement("a");
+        downloadLink.href = pngUrl;
+        downloadLink.download = "verification-code-qr.png";
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+    }
+  };
 
-        } catch (e) {
-            console.error(e);
-            setError('Encryption failed. Please try again.');
-        } finally {
-            setIsEncrypting(false);
-        }
-    };
 
-    const handleDecrypt = async () => {
-        if (!cipherTextForDecrypt || !decPassword || !verificationCode) {
-            setError('Please provide ciphertext, password, and verification code.');
-            return;
-        }
-        setError('');
-        setIsDecrypting(true);
-        setDecryptedText('');
-
-        try {
-            const iv = base64ToArrayBuffer(verificationCode);
-            const combinedBuffer = base64ToArrayBuffer(cipherTextForDecrypt);
-            
-            const salt = combinedBuffer.slice(0, SALT_LENGTH_BYTES);
-            const encryptedContent = combinedBuffer.slice(SALT_LENGTH_BYTES);
-
-            const key = await getKey(decPassword, new Uint8Array(salt));
-
-            const decryptedContent = await window.crypto.subtle.decrypt(
-                { name: 'AES-CBC', iv: new Uint8Array(iv) },
-                key,
-                encryptedContent
-            );
-
-            const decodedText = new TextDecoder().decode(decryptedContent);
-            setDecryptedText(decodedText);
-        } catch (e) {
-            console.error(e);
-            setError('Decryption failed. Please check your inputs (ciphertext, password, and verification code).');
-        } finally {
-            setIsDecrypting(false);
-        }
-    };
-    
-    const copyToClipboard = (text: string) => {
-        navigator.clipboard.writeText(text).catch(err => {
-            console.error('Failed to copy text: ', err);
-        });
-    };
-
-    return (
-        <div className="container">
-            <header>
-                <h1>CryptQR</h1>
-                <p>Securely encrypt your text and generate a QR verification code.</p>
-            </header>
-
-            <div className="main-content">
-                {/* Encryption Panel */}
-                <section className="panel" aria-labelledby="encrypt-heading">
-                    <h2 id="encrypt-heading">Encrypt Text</h2>
-                    <div className="form-group">
-                        <label htmlFor="plainText">Your Text</label>
-                        <textarea
-                            id="plainText"
-                            className="textarea"
-                            value={plainText}
-                            onChange={(e) => setPlainText(e.target.value)}
-                            placeholder="Enter the text you want to encrypt..."
-                            aria-required="true"
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="encPassword">Password</label>
-                        <input
-                            id="encPassword"
-                            type="password"
-                            className="input"
-                            value={encPassword}
-                            onChange={(e) => setEncPassword(e.target.value)}
-                            placeholder="Create a strong password"
-                            aria-required="true"
-                        />
-                    </div>
-                    <button onClick={handleEncrypt} className="button" disabled={isEncrypting}>
-                        {isEncrypting ? 'Encrypting...' : 'Encrypt & Generate QR'}
-                    </button>
-                    {cipherText && (
-                        <div className="output-area">
-                            <h3>Ciphertext (Encrypted Data)</h3>
-                            <div className="result-box">
-                                <textarea className="textarea" value={cipherText} readOnly aria-label="Ciphertext" />
-                                <button onClick={() => copyToClipboard(cipherText)} className="copy-button" aria-label="Copy Ciphertext">Copy</button>
-                            </div>
-                        </div>
-                    )}
-                    {qrCodeUrl && (
-                        <div className="output-area">
-                            <h3>Verification Code (QR)</h3>
-                            <p className="description">Scan this with a QR reader to get your verification code for decryption.</p>
-                            <div className="qr-code-container">
-                                <img src={qrCodeUrl} alt="QR Code containing the verification key" />
-                            </div>
-                        </div>
-                    )}
-                </section>
-
-                {/* Decryption Panel */}
-                <section className="panel" aria-labelledby="decrypt-heading">
-                    <h2 id="decrypt-heading">Decrypt Text</h2>
-                    <div className="form-group">
-                        <label htmlFor="cipherTextForDecrypt">Ciphertext</label>
-                         <textarea
-                            id="cipherTextForDecrypt"
-                            className="textarea"
-                            value={cipherTextForDecrypt}
-                            onChange={(e) => setCipherTextForDecrypt(e.target.value)}
-                            placeholder="Paste the encrypted ciphertext here"
-                            aria-required="true"
-                        />
-                    </div>
-                     <div className="form-group">
-                        <label htmlFor="decPassword">Password</label>
-                        <input
-                            id="decPassword"
-                            type="password"
-                            className="input"
-                            value={decPassword}
-                            onChange={(e) => setDecPassword(e.target.value)}
-                            placeholder="Enter the password used for encryption"
-                            aria-required="true"
-                        />
-                    </div>
-                    <div className="form-group">
-                        <label htmlFor="verificationCode">Verification Code (from QR)</label>
-                        <input
-                            id="verificationCode"
-                            type="text"
-                            className="input"
-                            value={verificationCode}
-                            onChange={(e) => setVerificationCode(e.target.value)}
-                            placeholder="Enter the code from the QR scan"
-                            aria-required="true"
-                        />
-                    </div>
-                    <button onClick={handleDecrypt} className="button" disabled={isDecrypting}>
-                        {isDecrypting ? 'Decrypting...' : 'Decrypt'}
-                    </button>
-                    {decryptedText && (
-                        <div className="output-area">
-                            <h3>Decrypted Text</h3>
-                             <div className="result-box">
-                                <textarea className="textarea" value={decryptedText} readOnly aria-label="Decrypted Text" />
-                                <button onClick={() => copyToClipboard(decryptedText)} className="copy-button" aria-label="Copy Decrypted Text">Copy</button>
-                            </div>
-                        </div>
-                    )}
-                </section>
-            </div>
-            {error && <p className="error-message" role="alert">{error}</p>}
+  const renderEncryptPanel = () => (
+    <div className="panel">
+      <div className="form-group">
+        <label htmlFor="plaintext">Plaintext</label>
+        <textarea id="plaintext" value={plaintext} onChange={(e) => setPlaintext(e.target.value)} placeholder="Enter your secret message..."></textarea>
+      </div>
+      <div className="form-group">
+        <label htmlFor="encrypt-password">Password</label>
+        <div className="password-wrapper">
+          <input id="encrypt-password" type={showEncryptPassword ? 'text' : 'password'} className="input" value={encryptPassword} onChange={(e) => setEncryptPassword(e.target.value)} placeholder="Enter a strong password" />
+          <button className="password-toggle" onClick={() => setShowEncryptPassword(!showEncryptPassword)} aria-label="Toggle password visibility">
+            {showEncryptPassword ? '👁️' : '🔒'}
+          </button>
         </div>
-    );
+        <p className={`password-validation ${encryptPassword.length > 0 && !isEncryptPasswordValid ? 'invalid' : ''}`}>
+          Password must be between 4 and 64 characters.
+        </p>
+      </div>
+      <button className="btn" onClick={handleEncrypt} disabled={!plaintext || !isEncryptPasswordValid || isEncrypting}>
+        {isEncrypting && <span className="loader"></span>}
+        Encrypt
+      </button>
+      {encryptError && <p className="error-message">{encryptError}</p>}
+      {generatedCiphertext && (
+        <>
+          <div className="output-group">
+            <div className="output-header">
+                <label htmlFor="generated-ciphertext">Ciphertext</label>
+                <button className="btn btn-secondary" onClick={() => copyToClipboard(generatedCiphertext)}>Copy</button>
+            </div>
+            <textarea id="generated-ciphertext" value={generatedCiphertext} readOnly></textarea>
+          </div>
+          <div className="output-group">
+            <div className="output-header">
+                <label htmlFor="verification-code">Verification Code</label>
+                <button className="btn btn-secondary" onClick={() => copyToClipboard(verificationCode)}>Copy Code</button>
+            </div>
+            <textarea id="verification-code" value={verificationCode} readOnly rows={3}></textarea>
+            <div className="qr-container">
+                <canvas id="qr-canvas"></canvas>
+                <div className="qr-actions">
+                    <button className="btn btn-secondary" onClick={downloadQR}>Download QR</button>
+                </div>
+            </div>
+          </div>
+        </>
+      )}
+    </div>
+  );
+
+  const renderDecryptPanel = () => (
+    <div className="panel">
+       <div className="form-group">
+        <label htmlFor="ciphertext">Ciphertext</label>
+        <textarea id="ciphertext" value={ciphertext} onChange={(e) => setCiphertext(e.target.value)} placeholder="Paste your encrypted message here..."></textarea>
+      </div>
+      <div className="form-group">
+        <label htmlFor="decrypt-verification-code">128-Character Verification Code</label>
+        <textarea id="decrypt-verification-code" rows={3} value={decryptVerificationCode} onChange={(e) => setDecryptVerificationCode(e.target.value)} placeholder="Enter the 128-character code from the QR code..."></textarea>
+      </div>
+      <div className="form-group">
+        <label htmlFor="decrypt-password">Password</label>
+        <div className="password-wrapper">
+            <input id="decrypt-password" type={showDecryptPassword ? 'text' : 'password'} className="input" value={decryptPassword} onChange={(e) => setDecryptPassword(e.target.value)} placeholder="Enter the password" />
+            <button className="password-toggle" onClick={() => setShowDecryptPassword(!showDecryptPassword)} aria-label="Toggle password visibility">
+                {showDecryptPassword ? '👁️' : '🔒'}
+            </button>
+        </div>
+      </div>
+      <button className="btn" onClick={handleDecrypt} disabled={!ciphertext || !decryptPassword || decryptVerificationCode.length !== 128 || isDecrypting}>
+        {isDecrypting && <span className="loader"></span>}
+        Decrypt
+      </button>
+      {decryptError && <p className="error-message">{decryptError}</p>}
+      {decryptedPlaintext && (
+        <div className="output-group">
+            <div className="output-header">
+                <label htmlFor="decrypted-plaintext">Decrypted Plaintext</label>
+                <button className="btn btn-secondary" onClick={() => copyToClipboard(decryptedPlaintext)}>Copy</button>
+            </div>
+            <textarea id="decrypted-plaintext" value={decryptedPlaintext} readOnly></textarea>
+        </div>
+      )}
+    </div>
+  );
+
+
+  return (
+    <main className="container">
+      <h1>Secure Crypto Tool</h1>
+      <div className="tabs">
+        <button className={`tab ${activeTab === 'encrypt' ? 'active' : ''}`} onClick={() => setActiveTab('encrypt')}>
+          Encrypt
+        </button>
+        <button className={`tab ${activeTab === 'decrypt' ? 'active' : ''}`} onClick={() => setActiveTab('decrypt')}>
+          Decrypt
+        </button>
+      </div>
+      {activeTab === 'encrypt' ? renderEncryptPanel() : renderDecryptPanel()}
+    </main>
+  );
 };
 
 const container = document.getElementById('root');
-if (container) {
-    const root = ReactDOM.createRoot(container);
-    root.render(<App />);
-}
+const root = createRoot(container!);
+root.render(<App />);
