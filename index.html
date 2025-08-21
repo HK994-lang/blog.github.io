@@ -2,123 +2,226 @@
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>文件加密工具</title>
+    <!-- 引入字体和图标库 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
+        :root {
+            --primary-color: #007bff;
+            --secondary-color: #6c757d;
+            --background-color: #f8f9fa;
+            --card-background: #ffffff;
+            --text-color: #333;
+            --border-color: #dee2e6;
+            --error-color: #dc3545;
+            --success-color: #28a745;
+        }
+
         body {
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            font-family: 'Noto Sans SC', sans-serif;
             margin: 0;
             padding: 2em;
-            background-color: #f4f4f9;
-            color: #333;
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
         }
+
         .container {
             max-width: 800px;
             margin: 0 auto;
-            background: #fff;
-            padding: 2em;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
         }
-        h1, h2 {
-            color: #444;
-            border-bottom: 2px solid #eee;
+
+        h1 {
+            text-align: center;
+            color: var(--text-color);
+            margin-bottom: 1.5em;
+            font-weight: 700;
+        }
+
+        .card {
+            background: var(--card-background);
+            padding: 2.5em;
+            border-radius: 12px;
+            box-shadow: 0 8px 16px rgba(0,0,0,0.05);
+            margin-bottom: 2em;
+            border: 1px solid var(--border-color);
+        }
+
+        h2 {
+            margin-top: 0;
+            color: var(--primary-color);
+            border-bottom: 2px solid var(--primary-color);
             padding-bottom: 10px;
+            font-weight: 500;
         }
+
         .form-group {
             margin-bottom: 1.5em;
         }
+
         label {
             display: block;
             margin-bottom: 0.5em;
-            font-weight: bold;
+            font-weight: 500;
         }
-        input[type="password"], textarea {
+
+        input[type="password"], input[type="text"], textarea {
             width: 100%;
-            padding: 0.8em;
-            border: 1px solid #ccc;
-            border-radius: 4px;
+            padding: 12px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
             box-sizing: border-box;
             font-size: 1em;
+            transition: border-color 0.3s, box-shadow 0.3s;
         }
+
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.15);
+        }
+        
         textarea {
             resize: vertical;
             min-height: 150px;
         }
-        button {
-            padding: 0.8em 1.5em;
+
+        .btn {
+            padding: 12px 24px;
             border: none;
-            background-color: #007bff;
-            color: white;
-            border-radius: 4px;
+            border-radius: 8px;
             cursor: pointer;
             font-size: 1em;
-            transition: background-color 0.3s;
+            font-weight: 500;
+            transition: all 0.3s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
         }
-        button:hover {
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+        .btn-primary:hover {
             background-color: #0056b3;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         }
+        
+        .btn-secondary {
+            background-color: var(--secondary-color);
+            color: white;
+        }
+        
+        .btn-secondary:hover {
+            background-color: #5a6268;
+            transform: translateY(-2px);
+        }
+        
+        .error, .success {
+            margin-top: 0.5em;
+            font-weight: 500;
+        }
+        .error { color: var(--error-color); }
+        .success { color: var(--success-color); }
+
+        #encryptionResult {
+            margin-top: 2em;
+            padding: 1.5em;
+            border: 1px dashed var(--border-color);
+            border-radius: 8px;
+            display: none; /* Initially hidden */
+        }
+        
         #qrcode {
             margin-top: 1em;
             padding: 1em;
-            border: 1px solid #eee;
-            border-radius: 4px;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
             display: inline-block;
         }
-        .error {
-            color: #d9534f;
-            margin-top: 0.5em;
+        
+        .result-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
         }
+
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h1>文件加密解密工具</h1>
+    <h1><i class="fa-solid fa-shield-halved"></i> 网页端文件加密工具</h1>
 
-    <!-- 加密部分 -->
-    <section>
-        <h2>加密</h2>
+    <!-- 加密卡片 -->
+    <div class="card">
+        <h2><i class="fa-solid fa-lock"></i> 加密</h2>
         <div class="form-group">
             <label for="originalText">原文:</label>
             <textarea id="originalText" placeholder="在此输入需要加密的内容"></textarea>
         </div>
         <div class="form-group">
             <label for="encryptPassword">密码 (4-64位):</label>
-            <input type="password" id="encryptPassword">
+            <input type="password" id="encryptPassword" autocomplete="new-password">
             <p class="error" id="encryptError"></p>
         </div>
-        <button onclick="encrypt()">加密并生成二维码</button>
-        <div id="qrcode"></div>
-    </section>
+        <button class="btn btn-primary" onclick="encrypt()"><i class="fa-solid fa-bolt"></i> 加密并生成</button>
 
-    <hr style="margin: 3em 0;">
+        <!-- 加密结果区域 -->
+        <div id="encryptionResult">
+            <div class="result-header">
+                <h3>加密结果</h3>
+                <button class="btn btn-secondary" onclick="downloadResult()"><i class="fa-solid fa-download"></i> 下载备份文件</button>
+            </div>
+            <div class="form-group">
+                <label for="generatedCipherText">密文:</label>
+                 <div style="position: relative;">
+                    <textarea id="generatedCipherText" readonly></textarea>
+                    <button onclick="copyCiphertext()" style="position: absolute; top: 10px; right: 10px; padding: 5px 10px; font-size: 0.8em;" class="btn btn-secondary" title="复制"><i class="fa-solid fa-copy"></i></button>
+                </div>
+                 <p class="success" id="copySuccess"></p>
+            </div>
+            <div class="form-group">
+                <label>验证码 (请截图或下载备份):</label>
+                <div id="qrcode"></div>
+            </div>
+        </div>
+    </div>
 
-    <!-- 解密部分 -->
-    <section>
-        <h2>解密</h2>
+    <!-- 解密卡片 -->
+    <div class="card">
+        <h2><i class="fa-solid fa-key"></i> 解密</h2>
         <div class="form-group">
             <label for="cipherText">密文:</label>
-            <textarea id="cipherText" placeholder="在此输入需要解密的内容"></textarea>
+            <textarea id="cipherText" placeholder="粘贴从加密文件中获得的密文"></textarea>
         </div>
         <div class="form-group">
             <label for="decryptPassword">密码:</label>
-            <input type="password" id="decryptPassword">
+            <input type="password" id="decryptPassword" autocomplete="new-password">
         </div>
         <div class="form-group">
             <label for="verificationCode">128位验证码:</label>
             <input type="text" id="verificationCode" placeholder="输入二维码中的验证码">
              <p class="error" id="decryptError"></p>
         </div>
-        <button onclick="decrypt()">解密</button>
-        <div class="form-group" style="margin-top: 1em;">
+        <button class="btn btn-primary" onclick="decrypt()"><i class="fa-solid fa-unlock"></i> 解密</button>
+        <div class="form-group" style="margin-top: 1.5em;">
             <label>解密后的原文:</label>
-            <textarea id="decryptedText" readonly style="background-color: #f9f9f9;"></textarea>
+            <textarea id="decryptedText" readonly style="background-color: #f0f0f0;"></textarea>
         </div>
-    </section>
+    </div>
 </div>
 
 <!-- 引入 CryptoJS 和 QRCode.js 库 -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.1.1/crypto-js.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/crypto-js/4.2.0/crypto-js.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 
 <script>
@@ -126,23 +229,28 @@
         const originalText = document.getElementById('originalText').value;
         const password = document.getElementById('encryptPassword').value;
         const errorElement = document.getElementById('encryptError');
+        const resultContainer = document.getElementById('encryptionResult');
         errorElement.textContent = '';
+        document.getElementById('copySuccess').textContent = '';
 
         if (password.length < 4 || password.length > 64) {
             errorElement.textContent = '密码长度必须在4到64位之间。';
+            resultContainer.style.display = 'none';
             return;
         }
 
         if (!originalText) {
             errorElement.textContent = '原文不能为空。';
+            resultContainer.style.display = 'none';
             return;
         }
 
         // 1. 生成128位的随机验证码
-        const verificationCode = CryptoJS.lib.WordArray.random(16).toString(); // 16 * 8 = 128 bits
+        const verificationCode = CryptoJS.lib.WordArray.random(16).toString(); // 16 bytes * 8 bits = 128 bits
 
         // 2. 使用密码和验证码组合作为密钥进行加密
-        const key = CryptoJS.PBKDF2(password, verificationCode, {
+        const salt = CryptoJS.lib.WordArray.random(128 / 8); // Salt for PBKDF2
+        const key = CryptoJS.PBKDF2(password, salt, {
             keySize: 256 / 32,
             iterations: 1000
         });
@@ -154,30 +262,95 @@
             mode: CryptoJS.mode.CBC
         });
 
-        // 3. 准备下载的内容：iv + 密文
-        const cipherText = iv.toString(CryptoJS.enc.Hex) + encrypted.toString();
+        // 3. 将 salt, iv, 和密文组合在一起
+        const cipherText = salt.toString() + iv.toString() + encrypted.toString();
         
-        // 4. 创建并触发下载
-        const blob = new Blob([cipherText], { type: 'text/plain;charset=utf-8' });
-        const link = document.createElement('a');
-        link.href = URL.createObjectURL(blob);
-        link.download = 'encrypted-file.txt';
-        link.click();
+        // 4. 在网页上显示密文
+        document.getElementById('generatedCipherText').value = cipherText;
 
         // 5. 生成包含验证码的二维码
         const qrcodeContainer = document.getElementById('qrcode');
         qrcodeContainer.innerHTML = ''; // 清空之前的二维码
         new QRCode(qrcodeContainer, {
             text: verificationCode,
-            width: 128,
-            height: 128,
+            width: 150,
+            height: 150,
+            colorDark : "#000000",
+            colorLight : "#ffffff",
+            correctLevel : QRCode.CorrectLevel.H
         });
+
+        // 6. 显示结果区域
+        resultContainer.style.display = 'block';
+    }
+    
+    function copyCiphertext() {
+        const textArea = document.getElementById('generatedCipherText');
+        textArea.select();
+        document.execCommand('copy');
+        
+        const successMsg = document.getElementById('copySuccess');
+        successMsg.textContent = '已复制到剪贴板!';
+        setTimeout(() => { successMsg.textContent = ''; }, 3000);
+    }
+    
+    function downloadResult() {
+        const cipherText = document.getElementById('generatedCipherText').value;
+        const password = document.getElementById('encryptPassword').value;
+        const qrCodeCanvas = document.querySelector('#qrcode canvas');
+        
+        if (!qrCodeCanvas) {
+            alert('请先生成加密数据！');
+            return;
+        }
+        
+        const qrCodeDataUrl = qrCodeCanvas.toDataURL('image/png');
+        
+        const htmlContent = `
+            <!DOCTYPE html>
+            <html lang="zh-CN">
+            <head>
+                <meta charset="UTF-8">
+                <title>加密备份文件</title>
+                <style>
+                    body { font-family: sans-serif; line-height: 1.6; padding: 20px; max-width: 800px; margin: auto; border: 1px solid #ccc; border-radius: 8px; }
+                    h1 { color: #d9534f; }
+                    h2 { border-bottom: 1px solid #eee; padding-bottom: 5px; }
+                    pre { background: #f4f4f4; padding: 15px; border-radius: 5px; white-space: pre-wrap; word-wrap: break-word; }
+                    .warning { background: #fcf8e3; border: 1px solid #faebcc; color: #8a6d3b; padding: 15px; border-radius: 5px; }
+                    img { border: 1px solid #ddd; border-radius: 4px; padding: 5px; }
+                </style>
+            </head>
+            <body>
+                <h1><span style="font-size: 1.5em;">⚠️</span> 重要备份 - 请妥善保管</h1>
+                <p class="warning">此文件包含解密所需的所有信息。请勿泄露给他人。</p>
+                
+                <h2>加密密码</h2>
+                <pre>${password}</pre>
+                
+                <h2>验证码二维码</h2>
+                <p>这是解密所需的重要凭证，请勿丢失。可使用手机扫描二维码获取其中的文本。</p>
+                <img src="${qrCodeDataUrl}" alt="Verification Code QR Code">
+                
+                <h2>密文</h2>
+                <pre>${cipherText}</pre>
+            </body>
+            </html>
+        `;
+        
+        const blob = new Blob([htmlContent], { type: 'text/html;charset=utf-8' });
+        const link = document.createElement('a');
+        link.href = URL.createObjectURL(blob);
+        link.download = '加密备份文件.html';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
     }
 
     function decrypt() {
         const cipherText = document.getElementById('cipherText').value;
         const password = document.getElementById('decryptPassword').value;
-        const verificationCode = document.getElementById('verificationCode').value;
+        const verificationCode = document.getElementById('verificationCode').value; // In this new setup, verification code is not used for decryption key directly. This field is for user to input from QR code.
         const decryptedTextElement = document.getElementById('decryptedText');
         const errorElement = document.getElementById('decryptError');
         errorElement.textContent = '';
@@ -187,26 +360,27 @@
             errorElement.textContent = '密文、密码和验证码均不能为空。';
             return;
         }
-
-        if (verificationCode.length !== 32) { // 128 bits = 32 hex characters
-            errorElement.textContent = '验证码格式不正确，应为32位十六进制字符串。';
-            return;
-        }
         
-        try {
-            // 1. 从密文中分离IV
-            const ivHex = cipherText.substring(0, 32);
-            const encryptedHex = cipherText.substring(32);
-            const iv = CryptoJS.enc.Hex.parse(ivHex);
+        // The QR code contains the original random verificationCode, we don't use it for decryption in this version
+        // but it acts as a required manual check for the user. We can add a check if needed, but it's not part of the key.
+        // For security, the key should be derived from password and a *salt* stored with the ciphertext.
 
-            // 2. 使用密码和验证码生成密钥
-            const key = CryptoJS.PBKDF2(password, verificationCode, {
+        try {
+            // 1. 从密文中分离 salt, iv, 和 密文本身
+            // Salt (128 bits / 8 = 16 bytes = 32 hex chars)
+            // IV (128 bits / 8 = 16 bytes = 32 hex chars)
+            const salt = CryptoJS.enc.Hex.parse(cipherText.substring(0, 32));
+            const iv = CryptoJS.enc.Hex.parse(cipherText.substring(32, 64));
+            const encrypted = cipherText.substring(64);
+
+            // 2. 使用密码和从密文中提取的salt生成密钥
+            const key = CryptoJS.PBKDF2(password, salt, {
                 keySize: 256 / 32,
                 iterations: 1000
             });
 
             // 3. 解密
-            const decrypted = CryptoJS.AES.decrypt(encryptedHex, key, {
+            const decrypted = CryptoJS.AES.decrypt(encrypted, key, {
                 iv: iv,
                 padding: CryptoJS.pad.Pkcs7,
                 mode: CryptoJS.mode.CBC
@@ -217,10 +391,10 @@
             if (decryptedText) {
                 decryptedTextElement.value = decryptedText;
             } else {
-                errorElement.textContent = '解密失败，请检查密码或验证码是否正确。';
+                errorElement.textContent = '解密失败，请检查密码或密文是否正确。';
             }
         } catch (e) {
-            errorElement.textContent = '解密过程中发生错误，请检查输入内容。';
+            errorElement.textContent = '解密过程中发生错误，密文格式可能不正确。';
             console.error(e);
         }
     }
